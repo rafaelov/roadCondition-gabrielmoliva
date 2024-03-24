@@ -47,6 +47,9 @@ df.dropna(inplace=True)
 #Substitui as linhas que contêm 'fullOfHoles' na coluna 'roadSurface' por 'unevenCondition'.
 df['roadSurface'] = df['roadSurface'].replace({"FullOfHolesCondition" : "UnevenCondition"})
 
+#Corrige a numeração do índice, começando em 0 e terminando em 23765.
+df.reset_index(drop=True, inplace=True)
+
 #Cria um codificador para associar os dados da coluna 'roadSurface' a dados numéricos.
 classes = df['roadSurface'].values.reshape(-1,1)
 enc = OneHotEncoder(sparse_output=False)
@@ -57,8 +60,10 @@ scaled_features = QuantileTransformer().fit_transform(df[colunasNumericas].value
 scaled_df = pd.DataFrame(scaled_features, index=df[colunasNumericas].index, columns=df[colunasNumericas].columns)
 
 #Exibe todas as colunas numéricas em forma de um conjunto de histogramas.
-fig = plt.figure(figsize=(15,20))
-ax = fig.gca()
-scaled_df.hist(ax=ax)
+#fig = plt.figure(figsize=(15,20))
+#ax = fig.gca()
+#scaled_df.hist(ax=ax)
 
-plt.show()
+#print(df.info())
+
+#plt.show()
