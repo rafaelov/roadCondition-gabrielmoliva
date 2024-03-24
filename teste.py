@@ -1,8 +1,12 @@
 import numpy as np 
 import pandas as pd 
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import QuantileTransformer, OneHotEncoder
+from sklearn.neighbors import KNeighborsRegressor
+import seaborn as sb
+import pandas.plotting as pp
 
-#abre o csv e transforma em um dataframe
+#Abre o csv e transforma em um dataframe.
 corsa_01 = r'opel_corsa_01.csv'
 df_corsa_01 = pd.read_csv(corsa_01, sep=';')
 
@@ -15,33 +19,46 @@ df_peugeot_01 = pd.read_csv(peugeot_01, sep=';')
 peugeot_02 = r'peugeot_207_02.csv'
 df_peugeot_02 = pd.read_csv(peugeot_02, sep=';')
 
-#concatena todos os dataframes em um unico
-df_concat = pd.concat([df_corsa_01, df_corsa_02, df_peugeot_01, df_peugeot_02], axis=0)
+#Concatena todos os dataframes em um único.
+df = pd.concat([df_corsa_01, df_corsa_02, df_peugeot_01, df_peugeot_02], axis=0)
 
-#remove colunas indesejadas do dataframe
-df_concat.drop(['AltitudeVariation', 'EngineLoad', 'EngineCoolantTemperature', 'ManifoldAbsolutePressure', 'EngineRPM', 'MassAirFlow', 'IntakeAirTemperature', 
-            'FuelConsumptionAverage', 'traffic', 'drivingStyle'], axis=1, inplace=True)
+#Renomea colunas.
+df.rename(
+    columns={"VehicleSpeedInstantaneous" : "SpeedInstantaneous", "VehicleSpeedAverage" : "SpeedAverage", 
+             "VehicleSpeedVariance" : "SpeedVariance", "VehicleSpeedVariation" : "SpeedVariation",
+             "LongitudinalAcceleration" : "LongAcceleration", "VerticalAcceleration" : "VertAcceleration"},
+    inplace=True)
 
-#colunas que contem valores numericos
-colunasNumericas = ['VehicleSpeedInstantaneous', 'VehicleSpeedAverage', 'VehicleSpeedVariance', 'VehicleSpeedVariation', 'LongitudinalAcceleration', 'VerticalAcceleration']
+#Remove colunas indesejadas do dataframe.
+df.drop(['AltitudeVariation', 'EngineLoad', 'EngineCoolantTemperature', 'ManifoldAbsolutePressure', 'EngineRPM', 'MassAirFlow', 'IntakeAirTemperature', 
+        'FuelConsumptionAverage', 'traffic', 'drivingStyle'], axis=1, inplace=True)
 
-#informacoes sobre as colunas do dataframe
-print(df_concat.info())
+#Colunas que contêm valores númericos.
+colunasNumericas = ['SpeedInstantaneous', 'SpeedAverage', 'SpeedVariance', 'SpeedVariation', 'LongAcceleration', 'VertAcceleration']
 
-#substitui ',' por '.' nas strings do dataframe e seta tipo para float
-df_concat = df_concat.replace(',', '.', regex=True)
-df_concat[colunasNumericas] = df_concat[colunasNumericas].astype(np.float64)
+#Substitui ',' por '.' nas colunas 'SpeedInstantaneous', 'SpeedAverage', 'SpeedVariance', 'SpeedVariation', 'LongAcceleration', 'VertAcceleration'
+#e altera seu tipo para np.float64.
+df = df.replace(',', '.', regex=True)
+df[colunasNumericas] = df[colunasNumericas].astype(np.float64)
 
-#verifica possiveis valores para coluna roadSurface
-print(list(df_concat['roadSurface'].unique()))
+#Remove linhas com valores não numéricos (NaN).
+df.dropna(inplace=True)
 
-#remove linhas com valores nao numericos (NaN)
-df_concat.dropna(inplace=True)
+#Substitui as linhas que contêm 'fullOfHoles' na coluna 'roadSurface' por 'unevenCondition'.
+df['roadSurface'] = df['roadSurface'].replace({"FullOfHolesCondition" : "UnevenCondition"})
 
-print(df_concat['VerticalAcceleration'].isnull().values.any())
+#Cria um codificador para associar os dados da coluna 'roadSurface' a dados numéricos.
+classes = df['roadSurface'].values.reshape(-1,1)
+enc = OneHotEncoder(sparse_output=False)
+enc.fit_transform(classes)
 
-#X = dados[['VehicleSpeedInstantaneous']].values
-#y = dados[['LongitudinalAcceleration']].values
-#plt.scatter(X, y, c=y)
+#Normaliza os dados das colunas numéricas para que fiquem na mesma escala utilizando a função 'QuantileTranformer'.
+scaled_features = QuantileTransformer().fit_transform(df[colunasNumericas].values)
+scaled_df = pd.DataFrame(scaled_features, index=df[colunasNumericas].index, columns=df[colunasNumericas].columns)
+
+#Exibe todas as colunas numéricas em forma de um conjunto de histogramas.
+fig = plt.figure(figsize=(15,20))
+ax = fig.gca()
+scaled_df.hist(ax=ax)
 
 plt.show()
