@@ -70,7 +70,7 @@ def accuracy_validation(clf, X_test, y_test, X, y):
     Recebe como parâmetros o modelo a ser validado, uma porção de dados X para teste, uma porção de dados y para teste e o conjunto total X e y de dados.
     '''
     clf_single_score = clf.score(X_test, y_test)
-    clf_cross_val_score = np.mean(cross_val_score(clf, X, y))
+    clf_cross_val_score = np.mean(cross_val_score(clf, X, y, cv=9))
     print('Esse é o score do modelo: ', clf_single_score)
     print('Esse é a média dos scores da validação cruzada do modelo: ', clf_cross_val_score)
 
@@ -81,26 +81,6 @@ def class_repo_validation(clf, X_test, y_test):
     '''
     y_preds = clf.predict(X_test)
     print(classification_report(y_test, y_preds))
-
-def evaluate_preds(y_true, y_preds):
-    '''
-    Compara a performance de y_true vs. y_preds.
-    '''
-    accuracy = accuracy_score(y_true, y_preds)
-    precision = precision_score(y_true, y_preds, average='binary', pos_label='SmoothCondition')
-    recall = recall_score(y_true, y_preds, average='binary', pos_label='SmoothCondition')
-    f1 = f1_score(y_true, y_preds, average='binary', pos_label='SmoothCondition')
-    metric_dict = {"accuracy": round(accuracy, 2),
-                   "precision": round(precision, 2),
-                   "recall": round(recall, 2),
-                   "f1": round(f1, 2)}
-    
-    print(f"Accuracy: {accuracy * 100:.2f}%")
-    print(f"Precision: {precision:.2f}")
-    print(f"Recall: {recall:.2f}")
-    print(f"F1 Score: {f1:.2f}")
-
-    return metric_dict
 
 # Abre o csv e transforma em um dataframe.
 corsa_01 = r'opel_corsa_01.csv'
@@ -164,26 +144,10 @@ y = scaled_df['roadSurface']
 # Separa os dados para teste e treinamento utilizando 70% para treinamento e 30% para teste.
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
-# Embaralha scaled_df e separa em treino, teste e validação.
-'''
-scaled_df_shuffled = scaled_df.sample(frac=1)
-X = scaled_df_shuffled[colunasNumericas]
-y = scaled_df_shuffled['roadSurface']
-train_split = round(0.7 * len(scaled_df_shuffled)) # 70% dos dados.
-valid_split = round(train_split + 0.15 * len(scaled_df_shuffled)) # 15% dos dados.
-X_train, y_train = X[:train_split], y[:train_split]
-X_valid, y_valid = X[train_split:valid_split], y[train_split:valid_split]
-X_test, y_test = X[valid_split:], y[valid_split:]
-'''
-
 # Utilizando o RandomForestClassifier.
-#clf = RandomForestClassifier()
-#clf.fit(X_train, y_train)
-#print(clf.score(X_test, y_test))
-
-# Exibe a performance do modelo segundo diversas métricas.
-#y_preds = clf.predict(X_test)
-#basline_metrics = evaluate_preds(y_test, y_preds)
+clf = RandomForestClassifier(n_estimators=100, min_samples_split=2, min_samples_leaf=1, 
+                             max_features='sqrt', max_depth=100)
+clf.fit(X_train, y_train)
 
 # Teste de performance modelo 2.
 #clf2 = RandomForestClassifier(n_estimators=100, min_samples_split=2, min_samples_leaf=1, 
@@ -218,13 +182,13 @@ print('Best Params:')
 print(rs_clf.best_params_)
 '''
 
-#accuracy_validation(clf, X_test, y_test, X, y)
+accuracy_validation(clf, X_test, y_test, X, y)
 
-#ROC_curve_validation(clf, X_test)
+ROC_curve_validation(clf, X_test)
 
-#confusion_matrix_validation(clf, X_test, y_test)
+confusion_matrix_validation(clf, X_test, y_test)
 
-#class_repo_validation(clf, X_test, y_test)
+class_repo_validation(clf, X_test, y_test)
 
 # Utilizando o ExtraTreesClassifier.
 clf = ExtraTreesClassifier()
@@ -237,10 +201,3 @@ ROC_curve_validation(clf, X_test)
 confusion_matrix_validation(clf, X_test, y_test)
 
 class_repo_validation(clf, X_test, y_test)
-
-
-#rs_clf = RandomizedSearchCV(estimator=clf, param_distributions=grid, n_iter=10, cv=5, verbose=2)
-
-#rs_clf.fit(X_train, y_train)
-#print('Best Params:')
-#print(rs_clf.best_params_)
