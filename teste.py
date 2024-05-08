@@ -83,16 +83,16 @@ def class_repo_validation(clf, X_test, y_test):
     print(classification_report(y_test, y_preds))
 
 # Abre o csv e transforma em um dataframe.
-corsa_01 = r'opel_corsa_01.csv'
+corsa_01 = r'/pdfs/opel_corsa_01.csv'
 df_corsa_01 = pd.read_csv(corsa_01, sep=';')
 
-corsa_02 = r'opel_corsa_02.csv'
+corsa_02 = r'/pdfs/opel_corsa_02.csv'
 df_corsa_02 = pd.read_csv(corsa_02, sep=';')
 
-peugeot_01 = r'peugeot_207_01.csv'
+peugeot_01 = r'/pdfs/peugeot_207_01.csv'
 df_peugeot_01 = pd.read_csv(peugeot_01, sep=';')
 
-peugeot_02 = r'peugeot_207_02.csv'
+peugeot_02 = r'/pdfs/peugeot_207_02.csv'
 df_peugeot_02 = pd.read_csv(peugeot_02, sep=';')
 
 # Concatena todos os dataframes em um único.
