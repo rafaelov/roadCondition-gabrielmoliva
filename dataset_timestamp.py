@@ -77,10 +77,15 @@ colunas_dropadas = ['paved_road', 'unpaved_road', 'dirt_road', 'cobblestone_road
                     'gyro_x_above_suspension', 'gyro_y_above_suspension', 'gyro_z_above_suspension', 'gyro_x_below_suspension', 'gyro_y_below_suspension', 'gyro_z_below_suspension', 'mag_x_dashboard', 
                     'mag_y_dashboard', 'mag_z_dashboard', 'mag_x_above_suspension', 'mag_y_above_suspension', 'mag_z_above_suspension', 'temp_dashboard', 'temp_above_suspension', 'temp_below_suspension', 
                     'latitude', 'longitude']
+df = df.drop(colunas_dropadas, axis=1)
 
-df.drop(colunas_dropadas, axis=1, inplace=True)
+# Une as colunas 'regular_road_left' e 'bad_road_left' em uma única coluna chamada 'bad_road' utilizando a operação booleana 'OR' e remove as colunas que foram unidas
+new_column_values = list(df['regular_road_left']|df['bad_road_left'])
+df.insert(len(df.axes[1]), 'bad_road', new_column_values)
+df = df.drop(['regular_road_left', 'bad_road_left'], axis=1)
+
+# Renomeia a coluna 'good_road_left' para 'good_road'
+df = df.rename(columns={'good_road_left' : 'good_road'})
 
 # Numera corretamente os indices do dataframe
 df.reset_index(inplace=True)
-
-print(df.isna)
