@@ -1,8 +1,42 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
+import seaborn as sb
+from sklearn.metrics import confusion_matrix, classification_report
+
+def plot_conf_mat(conf_mat):
+    '''
+    Plota uma matriz de confusão utilizando o heatmap() da biblioteca seaborn
+    '''
+    fig, ax = plt.subplots(figsize=(5,5))
+    ax = sb.heatmap(conf_mat,
+                    annot=True, # Adiciona anotações as caixas da matriz.
+                    cbar=False,
+                    fmt='g')
+    # Nomeia os eixos X e y.
+    plt.xlabel('True Label')
+    plt.ylabel('Predicted Label')
+    # Plota a matriz de confusão.
+    plt.show()
+
+def confusion_matrix_validation(clf, X_test, y_test):
+    '''
+    Realiza a validação de um modelo através de uma matriz de confusão.
+    Recebe como parâmetros o modelo a ser validado, uma porção de dados X para teste e uma porção de dados y para teste.
+    '''
+    y_preds = clf.predict(X_test)
+    conf_mat = confusion_matrix(y_test, y_preds)
+    plot_conf_mat(conf_mat)
+
+def class_repo_validation(clf, X_test, y_test):
+    '''
+    Realiza a validação do modelo utilizando o método de Classification Report.
+    Recebe como parâmetros o modelo a ser validado, uma porção de dados X para teste e uma porção de dados y para teste.
+    '''
+    y_preds = clf.predict(X_test)
+    print(classification_report(y_test, y_preds))
 
 # Abrindo os CSV em dataframes
 mpu_01 = r'datasets/dataset_gps_mpu_left_01.csv'
@@ -79,74 +113,72 @@ colunas_dropadas = ['paved_road', 'unpaved_road', 'dirt_road', 'cobblestone_road
                     'acc_x_below_suspension', 'acc_y_below_suspension', 'acc_z_below_suspension', 'gyro_x_above_suspension', 'gyro_y_above_suspension', 
                     'gyro_z_above_suspension', 'gyro_x_below_suspension', 'gyro_y_below_suspension', 'gyro_z_below_suspension', 'mag_x_dashboard', 'mag_y_dashboard', 
                     'mag_z_dashboard', 'mag_x_above_suspension', 'mag_y_above_suspension', 'mag_z_above_suspension', 'temp_dashboard', 'temp_above_suspension', 
-                    'temp_below_suspension', 'latitude', 'longitude']
+                    'temp_below_suspension', 'latitude', 'longitude', 'regular_road_left', 'bad_road_left']
 df = df.drop(colunas_dropadas, axis=1)
-
-# Une as colunas 'regular_road_left' e 'bad_road_left' em uma única coluna chamada 'bad_road' utilizando a operação booleana 'OR' e remove as colunas que foram unidas
-new_column_values = list(df['regular_road_left']|df['bad_road_left'])
-df.insert(len(df.axes[1]), 'bad_road', new_column_values)
-df = df.drop(['regular_road_left', 'bad_road_left'], axis=1)
 
 # Renomeia colunas
 df = df.rename(columns={'good_road_left' : 'good_road', 'acc_x_dashboard' : 'acc_x', 'acc_y_dashboard' : 'acc_y', 'acc_z_dashboard' : 'acc_z', 'gyro_x_dashboard' : 'gyro_x',
-                        'gyro_y_dashboard' : 'gyro_y', 'gyro_z_dashboard' : 'gyro_z'})
+                        'gyro_y_dashboard' : 'gyro_y', 'gyro_z_dashboard' : 'gyro_z', 'good_road_left' : 'good_road'})
 
 # Numera corretamente os indices do dataframe
 df = df.reset_index()
 
-#df_janelado = pd.DataFrame(columns=['acc_x_median', 'acc_x_std', 'acc_y_median', 'acc_y_std', 'acc_z_median', 'acc_z_std', 'gyro_x_median', 'gyro_x_std', 'gyro_y_median', 
-#                                    'gyro_y_std', 'gyro_z_median', 'gyro_z_std', 'speed_median', 'speed_std'])
-df_janelado = pd.DataFrame()
-'''
-# Criando X e y 
-X = df.drop(columns=['timestamp', 'timestamp_gps', 'good_road', 'bad_road'])
-y = df[['good_road', 'bad_road']]
-
-# Separando X e y em teste e treino
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-
-# Importando e treinando o classificador
-clf = RandomForestClassifier()
-clf.fit(X_train, y_train)
-
-#clf.predict(X_test, y_test)
-
-print(clf.score(X_test, y_test))
-print(np.mean(cross_val_score(clf, X, y, cv=5)))
-'''
 # Aplicando a janela deslizante
-tamanho = 10
-df_janelado['acc_x_median'] = df['acc_x'].rolling(window=tamanho).median()
-#df_janelado['acc_x_std'] = df['acc_x'].rolling(window=1).std()
-df_janelado['acc_y_median'] = df['acc_y'].rolling(window=tamanho).median()
-#df_janelado['acc_y_std'] = df['acc_y'].rolling(window=1).std()
-df_janelado['acc_z_median'] = df['acc_z'].rolling(window=tamanho).median()
-#df_janelado['acc_z_std'] = df['acc_z'].rolling(window=1).std()
+colunas_janela = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']
+tamanho = 100
+janela = df[colunas_janela].rolling(window=tamanho)
+df_janelado = janela.std().add_suffix('_std')
+df_janelado = df_janelado.join(df['speed'], how='right')
+df_janelado = df_janelado.join(df['good_road'], how='right')
+df_janelado = df_janelado.dropna()
+df_janelado = df_janelado.reset_index()
 
-df_janelado['gyro_x_median'] = df['gyro_x'].rolling(window=tamanho).median()
-#df_janelado['gyro_x_std'] = df['gyro_x'].rolling(window=1).std()
-df_janelado['gyro_y_median'] = df['gyro_y'].rolling(window=tamanho).median()
-#df_janelado['gyro_y_std'] = df['gyro_y'].rolling(window=1).std()
-df_janelado['gyro_z_median'] = df['gyro_z'].rolling(window=tamanho).median()
-#df_janelado['gyro_z_std'] = df['gyro_z'].rolling(window=1).std()
-
-df_janelado['speed_median'] = df['speed'].rolling(window=tamanho).median()
-#df_janelado['speed_std'] = df['speed'].rolling(window=1).std()
-
-print(df_janelado.info())
 
 # Criando X e y 
-X = df_janelado
-y = df[['good_road', 'bad_road']]
+X = df_janelado.drop(['good_road'], axis=1)
+y = df_janelado['good_road']
 
 # Separando X e y em teste e treino
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+param = {
+    'n_estimators' : [175, 200, 225, 250],
+    'criterion' : ['gini', 'entropy'],
+    'max_depth' : [None, 50, 100, 200, 250],
+    'max_features': ['sqrt'],
+    'min_samples_split': [2, 5, 10, 15],
+    'min_samples_leaf': [5, 10, 15]
+}
+'''
+# Utilizando o RandomizedSearchCV para encontrar os melhores hiperparametros
+# Melhores parametros: {'n_estimators': 200, 'min_samples_split': 2, 'min_samples_leaf': 10, 'max_features': 'sqrt', 'max_depth': None, 'criterion': 'gini'}
+# Melhores parametros2:{'n_estimators': 200, 'min_samples_split': 10, 'min_samples_leaf': 10, 'max_features': 'sqrt', 'max_depth': 250, 'criterion': 'entropy'}
+clf = ExtraTreesClassifier()
+rs_clf = RandomizedSearchCV(estimator=clf, param_distributions=param, n_iter=50, cv=5, verbose=2)
+rs_clf.fit(X, y)
 
+print('Melhor score: ', rs_clf.best_score_)
+print('Melhores parametros: ', rs_clf.best_params_)
+'''
+
+
+# Utilizando o GridSearchCV
+clf = ExtraTreesClassifier()
+gridSearch = GridSearchCV(estimator=clf, param_grid=param, cv=5, n_jobs=-1, verbose=2)
+gridSearch.fit(X, y)
+
+print('Melhor score: ', gridSearch.best_score_)
+print('Melhores parametros: ', gridSearch.best_params_)
+
+'''
 # Importando e treinando o classificador
-clf = RandomForestClassifier()
+clf = ExtraTreesClassifier(n_estimators=200, min_samples_split=2, min_samples_leaf=10, max_features='sqrt', max_depth=None, criterion='gini')
+clf = ExtraTreesClassifier()
 clf.fit(X_train, y_train)
 
-#clf.predict(X_test, y_test)
-
-print('Score janelamento de mediana, window=' + tamanho + ': ', clf.score(X_test, y_test))
-print('CV janelamento de mediana, window=' + tamanho + ': ', np.mean(cross_val_score(clf, X, y, cv=5)))
+score = clf.score(X_test, y_test)
+cv_score = np.mean(cross_val_score(clf, X, y, cv=5))
+print(f'Score janelamento de dp, window={tamanho}, ExtraTrees: {score}')
+print(f'CV janelamento de dp, window={tamanho}, ExtraTrees: {cv_score}')
+class_repo_validation(clf, X_test, y_test)
+confusion_matrix_validation(clf, X_test, y_test)
+'''
