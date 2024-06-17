@@ -4,7 +4,37 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 import seaborn as sb
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, roc_curve
+
+def plot_roc_curve(fpr, tpr):
+    '''
+    Plota um grafico da curva de ROC dado a quantidade de falsos positivos e de verdadeiros positivos
+    '''
+    # Plota a curva
+    plt.plot(fpr, tpr, color='orange', label='ROC')
+    #Plota a baseline
+    plt.plot([0, 1], [0, 1], color='darkblue', linestyle='--', label='Guessing')
+
+    #Customiza o plot
+    plt.xlabel('False positive rate (fpr)')
+    plt.ylabel('True positive rate (tpr)')
+    plt.title('Receiver Operator Characteristic (ROC) Curve')
+    plt.legend()
+    plt.show()
+
+def ROC_curve_validation(clf, X_test, y_test):
+    '''
+    Realiza a validação de um modelo através do método de Receiving Operating Characteristic (ROC Curve).
+    Recebe como parâmetros o modelo a ser validado e uma porção de dados X para teste.
+    '''
+    y_probs = clf.predict_proba(X_test)
+    y_probs_positive = y_probs[:, 1]
+    # Instancia os elementos da ROC Curve.
+    fpr, tpr, threshhold = roc_curve(y_test, y_probs_positive)
+    # Plota o gráfico.
+    plot_roc_curve(fpr, tpr)
+    # Faz o score da área embaixo da curva.
+    print('Esse é o AUC score da ROC Curve: ', roc_auc_score(y_test, y_probs_positive))
 
 def plot_conf_mat(conf_mat):
     '''
@@ -105,7 +135,7 @@ df_concat_08 = pd.concat([df_mpu_08, df_lbl_08], axis=1)
 df_concat_09 = pd.concat([df_mpu_09, df_lbl_09], axis=1)
 
 # Concatena todos os dataframes em um unico, axis=0 para concatenar verticalmente
-df = pd.concat([df_concat_01, df_concat_04, df_concat_09], axis=0)
+df = pd.concat([df_concat_01, df_concat_02, df_concat_03, df_concat_04, df_concat_05, df_concat_06, df_concat_07, df_concat_08, df_concat_09], axis=0)
 
 # Remove colunas indesejadas do dataframe
 colunas_dropadas = ['paved_road', 'unpaved_road', 'dirt_road', 'cobblestone_road',  'asphalt_road', 'no_speed_bump', 'speed_bump_asphalt', 'speed_bump_cobblestone', 
@@ -133,7 +163,6 @@ df_janelado = df_janelado.join(df['good_road'], how='right')
 df_janelado = df_janelado.dropna()
 df_janelado = df_janelado.reset_index()
 
-
 # Criando X e y 
 X = df_janelado.drop(['good_road'], axis=1)
 y = df_janelado['good_road']
@@ -160,18 +189,19 @@ print('Melhor score: ', rs_clf.best_score_)
 print('Melhores parametros: ', rs_clf.best_params_)
 '''
 
-
+'''
 # Utilizando o GridSearchCV
+# Melhores parametros:  {'criterion': 'entropy', 'max_depth': 250, 'max_features': 'sqrt', 'min_samples_leaf': 15, 'min_samples_split': 10, 'n_estimators': 200}
 clf = ExtraTreesClassifier()
 gridSearch = GridSearchCV(estimator=clf, param_grid=param, cv=5, n_jobs=-1, verbose=2)
 gridSearch.fit(X, y)
 
 print('Melhor score: ', gridSearch.best_score_)
 print('Melhores parametros: ', gridSearch.best_params_)
-
 '''
+
 # Importando e treinando o classificador
-clf = ExtraTreesClassifier(n_estimators=200, min_samples_split=2, min_samples_leaf=10, max_features='sqrt', max_depth=None, criterion='gini')
+#clf = ExtraTreesClassifier(criterion='entropy', max_depth=250, max_features='sqrt', min_samples_leaf=15, min_samples_split=10, n_estimators=200)
 clf = ExtraTreesClassifier()
 clf.fit(X_train, y_train)
 
@@ -181,4 +211,4 @@ print(f'Score janelamento de dp, window={tamanho}, ExtraTrees: {score}')
 print(f'CV janelamento de dp, window={tamanho}, ExtraTrees: {cv_score}')
 class_repo_validation(clf, X_test, y_test)
 confusion_matrix_validation(clf, X_test, y_test)
-'''
+ROC_curve_validation(clf, X_test, y_test)
