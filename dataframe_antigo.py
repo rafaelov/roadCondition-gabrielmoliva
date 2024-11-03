@@ -83,16 +83,16 @@ def class_repo_validation(clf, X_test, y_test):
     print(classification_report(y_test, y_preds))
 
 # Abre o csv e transforma em um dataframe.
-corsa_01 = r'/pdfs/opel_corsa_01.csv'
+corsa_01 = r'datasets/opel_corsa_01.csv'
 df_corsa_01 = pd.read_csv(corsa_01, sep=';')
 
-corsa_02 = r'/pdfs/opel_corsa_02.csv'
+corsa_02 = r'datasets/opel_corsa_02.csv'
 df_corsa_02 = pd.read_csv(corsa_02, sep=';')
 
-peugeot_01 = r'/pdfs/peugeot_207_01.csv'
+peugeot_01 = r'datasets/peugeot_207_01.csv'
 df_peugeot_01 = pd.read_csv(peugeot_01, sep=';')
 
-peugeot_02 = r'/pdfs/peugeot_207_02.csv'
+peugeot_02 = r'datasets/peugeot_207_02.csv'
 df_peugeot_02 = pd.read_csv(peugeot_02, sep=';')
 
 # Concatena todos os dataframes em um único.
@@ -125,18 +125,27 @@ df['roadSurface'] = df['roadSurface'].replace({"FullOfHolesCondition" : "UnevenC
 
 # Corrige a numeração do índice, começando em 0 e terminando em 23765.
 df.reset_index(drop=True, inplace=True)
-
+'''
 # Exibe todas as colunas numéricas em forma de um conjunto de histogramas.
-#fig = plt.figure(figsize=(15,20))
-#ax = fig.gca()
-#scaled_df.hist(ax=ax)
-#plt.show()
-
+fig = plt.figure(figsize=(15,20))
+ax = fig.gca()
+df.hist(ax=ax)
+plt.show()
+'''
 # Normaliza os dados das colunas numéricas para que fiquem na mesma escala utilizando a função 'QuantileTranformer'.
 scaled_features = QuantileTransformer().fit_transform(df[colunasNumericas].values)
 scaled_df = pd.DataFrame(scaled_features, index=df[colunasNumericas].index, columns=df[colunasNumericas].columns)
 scaled_df['roadSurface'] = df['roadSurface']
 
+scaled_df.to_csv('dataframe_antigo.csv', encoding='utf-8', index=False)
+
+'''
+# Exibe todas as colunas numéricas em forma de um conjunto de histogramas.
+fig = plt.figure(figsize=(15,20))
+ax = fig.gca()
+scaled_df.hist(ax=ax)
+plt.show()
+'''
 # Criando X e y (features e labels).
 X = scaled_df[colunasNumericas]
 y = scaled_df['roadSurface']
@@ -144,10 +153,12 @@ y = scaled_df['roadSurface']
 # Separa os dados para teste e treinamento utilizando 70% para treinamento e 30% para teste.
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
+#n_estimators=100, min_samples_split=2, min_samples_leaf=1, max_features='sqrt', max_depth=100
+#n_estimators=500, min_samples_split=2, min_samples_leaf=1, max_features='sqrt', max_depth=200, criterion='entropy'
+
 # Utilizando o RandomForestClassifier.
-clf = RandomForestClassifier(n_estimators=100, min_samples_split=2, min_samples_leaf=1, 
-                             max_features='sqrt', max_depth=100)
-clf.fit(X_train, y_train)
+#clf = ExtraTreesClassifier()
+#clf.fit(X_train, y_train)
 
 # Teste de performance modelo 2.
 #clf2 = RandomForestClassifier(n_estimators=100, min_samples_split=2, min_samples_leaf=1, 
@@ -182,16 +193,9 @@ print('Best Params:')
 print(rs_clf.best_params_)
 '''
 
-accuracy_validation(clf, X_test, y_test, X, y)
 
-ROC_curve_validation(clf, X_test)
-
-confusion_matrix_validation(clf, X_test, y_test)
-
-class_repo_validation(clf, X_test, y_test)
-
-# Utilizando o ExtraTreesClassifier.
-clf = ExtraTreesClassifier()
+# Teste comparativo
+clf = ExtraTreesClassifier(n_estimators=500, min_samples_split=2, min_samples_leaf=1, max_features='sqrt', max_depth=200, criterion='entropy')
 clf.fit(X_train, y_train)
 
 accuracy_validation(clf, X_test, y_test, X, y)
@@ -201,3 +205,16 @@ ROC_curve_validation(clf, X_test)
 confusion_matrix_validation(clf, X_test, y_test)
 
 class_repo_validation(clf, X_test, y_test)
+'''
+# Utilizando o ExtraTreesClassifier.
+clf = ExtraTreesClassifier(n_estimators=500, min_samples_split=2, min_samples_leaf=1, max_features='sqrt', max_depth=200, criterion='entropy')
+clf.fit(X_train, y_train)
+
+accuracy_validation(clf, X_test, y_test, X, y)
+
+ROC_curve_validation(clf, X_test)
+
+confusion_matrix_validation(clf, X_test, y_test)
+
+class_repo_validation(clf, X_test, y_test)
+'''

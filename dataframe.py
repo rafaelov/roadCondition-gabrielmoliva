@@ -89,6 +89,19 @@ df = df.reset_index()
 colunas_janela = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']
 tamanho = 100
 janela = df[colunas_janela].rolling(window=tamanho)
+df_janelado = janela.median().add_suffix('_std')
+df_janelado = df_janelado.join(df['speed'], how='right')
+df_janelado = df_janelado.join(df['good_road'], how='right')
+df_janelado = df_janelado.dropna()
+df_janelado = df_janelado.reset_index()
+
+df_janelado.to_csv('dataframe_janelado_median_100.csv', encoding='utf-8', index=False)
+
+'''
+# Aplicando a janela deslizante
+colunas_janela = ['acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z']
+tamanho = 100
+janela = df[colunas_janela].rolling(window=tamanho)
 df_janelado = janela.std().add_suffix('_std')
 df_janelado = df_janelado.join(df['speed'], how='right')
 df_janelado = df_janelado.join(df['good_road'], how='right')
@@ -96,3 +109,4 @@ df_janelado = df_janelado.dropna()
 df_janelado = df_janelado.reset_index()
 
 df_janelado.to_csv('dataframe_janelado.csv', encoding='utf-8', index=False)
+'''
